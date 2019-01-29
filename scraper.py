@@ -1,6 +1,12 @@
 import praw 
 import json
-import sys
+import logging
+
+handler = logging.StreamHandler()
+handler.setLevel(logging.DEBUG)
+logger = logging.getLogger('prawcore')
+logger.setLevel(logging.DEBUG)
+logger.addHandler(handler)
 
 reddit = praw.Reddit('aedl')
 
@@ -10,6 +16,7 @@ def getredditsubmission(subid):
     submission_json = submissioninfo(submission)
     submission_json['user'] = userinfo(submission.author)
     submission_json['subreddit'] = subredditinfo(submission.subreddit, submission.subreddit_id)
+    submission.comment_sort = 'old'
     submission_json['comments'] = commentsinfo(submission.comments)
     return submission_json
 
@@ -28,7 +35,6 @@ def submissioninfo(submission):
 
 def userinfo(user):
     user_data = {}
-    user_data['user_id'] = user.id
     user_data['username'] = user.name
     user_data['karma'] = user.comment_karma
     user_data['creation_date_utc'] = user.created_utc
@@ -48,7 +54,9 @@ def subredditinfo(subreddit, subreddit_id):
 
 def commentsinfo(comments):
     comments_data = []
-    for comment in comments:
+    comments.replace_more(limit=None) #all MoreComments objects will be replaced
+    for comment in comments.list(): #flatten all nested comments
+        comment.refresh()
         data = {}
         data['comment_id'] = comment.id
         data['text'] = comment.body
@@ -59,14 +67,12 @@ def commentsinfo(comments):
         data['comment_url'] = comment.permalink
         data['upvotes'] = comment.score
         data['replies'] = comment.replies.__len__()
-
         data['user'] = userinfo(comment.author)
 
         comments_data.append(data)
     return comments_data
 
-#8cx0da : 'Mener I at der skal være ulve i Dk? Hvorfor/hvorfor ikke?'
-subid = '8cx0da'
+subid = '8cx0da' #'Mener I at der skal være ulve i Dk? Hvorfor/hvorfor ikke?'
 submission_json = getredditsubmission(subid)
 with open("{0}.json".format(subid), 'w') as outfile:
     json.dump(submission_json, outfile)
