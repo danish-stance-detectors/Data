@@ -3,6 +3,9 @@ import json
 import logging
 from datetime import datetime
 import time
+import os
+
+datafolder = "submissions/"
 
 #Logging config. Will print HTTP calls to std. out
 handler = logging.StreamHandler()
@@ -100,5 +103,6 @@ def convtime(utctime):
 
 subid = '8cx0da' #'Mener I at der skal være ulve i Dk? Hvorfor/hvorfor ikke?'
 submission_json = getredditsubmission(subid)
-with open("{0}.json".format(subid), 'w') as outfile:
+path = os.path.join(datafolder, "{0}.json".format(subid))
+with open(path, 'w') as outfile:
     json.dump(submission_json, outfile)
