@@ -54,7 +54,7 @@ def userinfo(user):
         user_data['created'] = convtime(user.created_utc)
         user_data['gold_status'] = user.is_gold
         user_data['is_employee'] = user.is_employee
-        user_data['has_verified_email'] = user.has_verified_email
+        user_data['has_verified_email'] = user.has_verified_email if user.has_verified_email is not None else False
     except prawcore.exceptions.NotFound:
         return {}
     return user_data
