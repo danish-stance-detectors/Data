@@ -2,7 +2,9 @@ import praw
 import json
 import logging
 from datetime import datetime
+import time
 
+#Logging config. Will print HTTP calls to std. out
 handler = logging.StreamHandler()
 handler.setLevel(logging.DEBUG)
 logger = logging.getLogger('prawcore')
@@ -12,6 +14,8 @@ logger.addHandler(handler)
 reddit = praw.Reddit('aedl')
 
 def getredditsubmission(subid):
+    """Retrieve information in JSON about a Submission, inlcuding its
+    author, Subreddit, and all comments with corresponding user unfo"""
     submission = reddit.submission(id=subid) 
 
     submission_json = submissioninfo(submission)
@@ -23,6 +27,7 @@ def getredditsubmission(subid):
 
 
 def submissioninfo(submission):
+    """Retrieve essential data for a Submission"""
     submission_json = {}
     submission_json['title'] = submission.title
     submission_json['text'] = submission.selftext
@@ -35,6 +40,9 @@ def submissioninfo(submission):
     return submission_json
 
 def userinfo(user):
+    """Retrieve relevant information for a Redditor"""
+    if ( user is None ):
+        return {}
     user_data = {}
     user_data['id'] = user.id
     user_data['username'] = user.name
@@ -46,6 +54,7 @@ def userinfo(user):
     return user_data
 
 def subredditinfo(subreddit, subreddit_id):
+    """Retrieve essential data for a Subreddit"""
     subreddit_data = {}
     subreddit_data['name'] = subreddit.display_name
     subreddit_data['subreddit_id'] = subreddit_id
@@ -55,12 +64,24 @@ def subredditinfo(subreddit, subreddit_id):
 
 def commentsinfo(comments):
     comments_data = []
-    comments.replace_more(limit=None) #all MoreComments objects will be replaced
+    while True:
+        try:
+            #all MoreComments objects will be replaced
+            #May cause many API calls, and thus exceptions
+            #Keep trying until all are replaced
+            comments.replace_more(limit=None)
+            break
+        except Exception:
+            print('Handling replace_more exception')
+            time.sleep(1)
     for comment in comments.list(): #flatten all nested comments
-        comment.refresh()
         data = {}
         data['comment_id'] = comment.id
         data['text'] = comment.body
+        is_deleted = False
+        if ( data['text'] == '[deleted]'):
+            is_deleted = True
+        data['is_deleted'] = is_deleted
         data['created'] = convtime(comment.created_utc)
         data['is_submitter'] = comment.is_submitter
         data['submission_id'] = comment.link_id
@@ -74,6 +95,7 @@ def commentsinfo(comments):
     return comments_data
 
 def convtime(utctime):
+    """Convert POSIX time to YYYY-MM-DD HH:MM:SS"""
     return datetime.utcfromtimestamp(utctime).strftime("%Y-%m-%d %H:%M:%S")
 
 subid = '8cx0da' #'Mener I at der skal være ulve i Dk? Hvorfor/hvorfor ikke?'
