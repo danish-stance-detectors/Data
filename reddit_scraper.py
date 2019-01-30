@@ -8,9 +8,6 @@ import os
 import getopt
 import sys
 
-datafolder = "submissions/"
-submission_ids = "submission_ids.csv"
-
 def enablelogging():
     """Enable logging. Will print HTTP calls to terminal."""
     handler = logging.StreamHandler()
@@ -24,26 +21,26 @@ def getredditsubmission(reddit, subid):
     author, Subreddit, and all comments with corresponding user unfo"""
     submission = reddit.submission(id=subid) 
 
-    submission_json = submissioninfo(submission)
-    submission_json['user'] = userinfo(submission.author)
-    submission_json['subreddit'] = subredditinfo(submission.subreddit, submission.subreddit_id)
+    sub_data = submissioninfo(submission)
+    sub_data['user'] = userinfo(submission.author)
+    sub_data['subreddit'] = subredditinfo(submission.subreddit, submission.subreddit_id)
     submission.comment_sort = 'old'
-    submission_json['comments'] = commentsinfo(submission.comments)
-    return submission_json
+    sub_data['comments'] = commentsinfo(submission.comments)
+    return sub_data
 
 
 def submissioninfo(submission):
     """Retrieve essential data for a Submission"""
-    submission_json = {}
-    submission_json['title'] = submission.title
-    submission_json['text'] = submission.selftext
-    submission_json['submission_id'] = submission.id
-    submission_json['created'] = convtime(submission.created_utc)
-    submission_json['num_comments'] = submission.num_comments
-    submission_json['url'] = submission.permalink
-    submission_json['upvotes'] = submission.score
-    submission_json['is_video'] = submission.is_video
-    return submission_json
+    sub_data = {}
+    sub_data['title'] = submission.title
+    sub_data['text'] = submission.selftext
+    sub_data['submission_id'] = submission.id
+    sub_data['created'] = convtime(submission.created_utc)
+    sub_data['num_comments'] = submission.num_comments
+    sub_data['url'] = submission.permalink
+    sub_data['upvotes'] = submission.score
+    sub_data['is_video'] = submission.is_video
+    return sub_data
 
 def userinfo(user):
     """Retrieve relevant information for a Redditor"""
@@ -107,20 +104,28 @@ def convtime(utctime):
     """Convert POSIX time to YYYY-MM-DD HH:MM:SS"""
     return datetime.utcfromtimestamp(utctime).strftime("%Y-%m-%d %H:%M:%S")
 
-def process_submissions(reddit):
-    existing_submissions = os.listdir(datafolder)
-    print(existing_submissions)
+def process_submissions(reddit, datafolder, submission_ids):
+    """Go through submission_ids and process information
+    from reddit for each Submission and output in JSON into
+    respective folders in the datafolder, depending on their topic"""
     with open(submission_ids, 'r') as subids:
         for line in subids.readlines()[1:]: #skip header
-            subid = line.split(',')[0]
-            if "{0}.json".format(subid) in existing_submissions:
-                print("Skipping", subid)
-                continue
-            print("Processing", subid)
-            submission_json = getredditsubmission(reddit, subid)
-            path = os.path.join(datafolder, "{0}.json".format(subid))
-            with open(path, 'w') as outfile:
-                json.dump(submission_json, outfile)
+            vals = line.split(',')
+            subid = vals[0].strip()
+            topic = vals[1].strip()
+            topicfolder = os.path.join(datafolder, topic)
+            if not os.path.exists(topicfolder):
+                os.makedirs(topicfolder)
+            else:
+                existing_submissions = os.listdir(topicfolder)
+                if "{0}.json".format(subid) in existing_submissions:
+                    print("Skip", subid)
+                    continue
+            print("Process", subid)
+            sub_data = getredditsubmission(reddit, subid)
+            path = os.path.join(topicfolder, "{0}.json".format(subid))
+            with open(path, 'w', encoding="utf-8") as outfile:
+                json.dump(sub_data, outfile, ensure_ascii=False)
 
 
 def main(argv):
@@ -140,8 +145,11 @@ def main(argv):
             print("run with -l or -log to enable logging of API calls")
             sys.exit()
 
+    datafolder = "submissions/"
+    submission_ids = "submission_ids.csv"
+
     if reddit:
-        process_submissions(reddit)    
+        process_submissions(reddit, datafolder, submission_ids)    
 
 if __name__ == "__main__":
     main(sys.argv[1:])
