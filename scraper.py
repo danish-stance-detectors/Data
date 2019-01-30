@@ -1,22 +1,25 @@
 import praw 
+import prawcore.exceptions
 import json
 import logging
 from datetime import datetime
 import time
 import os
+import getopt
+import sys
 
 datafolder = "submissions/"
+submission_ids = "submission_ids.csv"
 
-#Logging config. Will print HTTP calls to std. out
-handler = logging.StreamHandler()
-handler.setLevel(logging.DEBUG)
-logger = logging.getLogger('prawcore')
-logger.setLevel(logging.DEBUG)
-logger.addHandler(handler)
+def enablelogging():
+    """Enable logging. Will print HTTP calls to terminal."""
+    handler = logging.StreamHandler()
+    handler.setLevel(logging.DEBUG)
+    logger = logging.getLogger('prawcore')
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(handler)
 
-reddit = praw.Reddit('aedl')
-
-def getredditsubmission(subid):
+def getredditsubmission(reddit, subid):
     """Retrieve information in JSON about a Submission, inlcuding its
     author, Subreddit, and all comments with corresponding user unfo"""
     submission = reddit.submission(id=subid) 
@@ -47,13 +50,16 @@ def userinfo(user):
     if ( user is None ):
         return {}
     user_data = {}
-    user_data['id'] = user.id
-    user_data['username'] = user.name
-    user_data['karma'] = user.comment_karma
-    user_data['created'] = convtime(user.created_utc)
-    user_data['gold_status'] = user.is_gold
-    user_data['is_employee'] = user.is_employee
-    user_data['has_verified_email'] = user.has_verified_email
+    try:
+        user_data['id'] = user.id
+        user_data['username'] = user.name
+        user_data['karma'] = user.comment_karma
+        user_data['created'] = convtime(user.created_utc)
+        user_data['gold_status'] = user.is_gold
+        user_data['is_employee'] = user.is_employee
+        user_data['has_verified_email'] = user.has_verified_email
+    except prawcore.exceptions.NotFound:
+        return {}
     return user_data
 
 def subredditinfo(subreddit, subreddit_id):
@@ -101,8 +107,41 @@ def convtime(utctime):
     """Convert POSIX time to YYYY-MM-DD HH:MM:SS"""
     return datetime.utcfromtimestamp(utctime).strftime("%Y-%m-%d %H:%M:%S")
 
-subid = '8cx0da' #'Mener I at der skal være ulve i Dk? Hvorfor/hvorfor ikke?'
-submission_json = getredditsubmission(subid)
-path = os.path.join(datafolder, "{0}.json".format(subid))
-with open(path, 'w') as outfile:
-    json.dump(submission_json, outfile)
+def process_submissions(reddit):
+    existing_submissions = os.listdir(datafolder)
+    print(existing_submissions)
+    with open(submission_ids, 'r') as subids:
+        for line in subids.readlines()[1:]: #skip header
+            subid = line.split(',')[0]
+            if "{0}.json".format(subid) in existing_submissions:
+                print("Skipping", subid)
+                continue
+            print("Processing", subid)
+            submission_json = getredditsubmission(reddit, subid)
+            path = os.path.join(datafolder, "{0}.json".format(subid))
+            with open(path, 'w') as outfile:
+                json.dump(submission_json, outfile)
+
+
+def main(argv):
+    reddit = None
+    try:
+        opts, _ = getopt.getopt(argv, "u:h:l", ["user=","help","log"])
+    except getopt.GetoptError:
+        print("see: scraper.py -help")
+        sys.exit(2)
+    for opt, val in opts:
+        if opt in ("-l", "-log"):
+            enablelogging()
+        elif opt in ("-u", "-user"):
+            reddit = praw.Reddit(val)
+        elif opt in ("-h", "-help"):
+            print("run 'scraper.py -u' or 'scraper.py -user' with valid praw agent from praw.ini")
+            print("run with -l or -log to enable logging of API calls")
+            sys.exit()
+
+    if reddit:
+        process_submissions(reddit)    
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
