@@ -1,0 +1,1 @@
+Contains CSV files for the different events, including the submission ids, topics, titles and URLs

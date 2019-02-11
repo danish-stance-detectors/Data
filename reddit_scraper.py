@@ -7,6 +7,7 @@ import time
 import os
 import getopt
 import sys
+import csv
 
 def enablelogging():
     """Enable logging. Will print HTTP calls to terminal."""
@@ -131,6 +132,12 @@ def process_submissions(reddit, datafolder, submission_ids):
             with open(path, 'w', encoding="utf-8") as outfile:
                 json.dump(sub_data, outfile, ensure_ascii=False)
 
+def fetch_all_for_topic(reddit, csvfile, topic, query):
+    with open(csvfile, 'w', encoding="utf-8", newline='') as out:
+        csvwriter = csv.writer(out)
+        csvwriter.writerow(['sub_id', 'topic', 'title', 'url'])
+        for sub in reddit.subreddit('Denmark').search(query):
+            csvwriter.writerow([sub.id, topic, sub.title, "https://www.reddit.com{0}".format(sub.permalink)])
 
 def main(argv):
     reddit = None
@@ -145,15 +152,24 @@ def main(argv):
         elif opt in ("-u", "-user"):
             reddit = praw.Reddit(val)
         elif opt in ("-h", "-help"):
-            print("run 'scraper.py -u' or 'scraper.py -user' with valid praw agent from praw.ini")
-            print("run with -l or -log to enable logging of API calls")
-            sys.exit()
+            help_msg = """ 
+            run with '-u'/'-user' and valid praw agent argument from praw.ini\n
+            run with '-l'/'-log' to enable logging of API calls
+            """
+            sys.exit(help_msg)
+
+    if not reddit:
+        sys.exit("Reddit instance coult not be obtained!\nSee '-help' for more information")
 
     datafolder = "submissions/"
-    submission_ids = "submission_ids.csv"
+    submission_ids = "submission_ids/"
 
-    if reddit:
-        process_submissions(reddit, datafolder, submission_ids)    
+    #TODO: Read topic and query come from a file and create csv file manually
+    fetch_all_for_topic(reddit, os.path.join(submission_ids, 'ulvesagen.csv'), 'ulvesagen', 'ulv self:yes AND NOT flair:Humor')
+
+    for info_file in os.listdir(submission_ids):
+        process_submissions(reddit, datafolder, os.path.join(submission_ids, info_file))   
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])

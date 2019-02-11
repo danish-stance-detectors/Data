@@ -1,6 +1,7 @@
 praw.ini
 submissions/*.json
 submissions/**/*.json
+submission_ids/*.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
