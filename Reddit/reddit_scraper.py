@@ -10,6 +10,8 @@ import getopt
 import sys
 import csv
 
+reddit_url = "https://www.reddit.com"
+
 def enablelogging():
     """Enable logging. Will print HTTP calls to terminal."""
     handler = logging.StreamHandler()
@@ -39,7 +41,7 @@ def submissioninfo(submission):
     sub_data['submission_id'] = submission.id
     sub_data['created'] = utctodate(submission.created_utc)
     sub_data['num_comments'] = submission.num_comments
-    sub_data['url'] = submission.permalink
+    sub_data['url'] = "{0}{1}".format(reddit_url,submission.permalink)
     sub_data['text_url'] = submission.url
     sub_data['upvotes'] = submission.score
     sub_data['is_video'] = submission.is_video
@@ -148,7 +150,7 @@ def fetch_all_for_topic(csvfile, topic, submissions):
         if write_header:
             csvwriter.writerow(['sub_id', 'topic', 'title', 'url'])
         for sub in submissions: #reddit.subreddit('Denmark').search(query):
-            csvwriter.writerow([sub.id, topic, sub.title, "https://www.reddit.com{0}".format(sub.permalink)])
+            csvwriter.writerow([sub.id, topic, sub.title, "{0}{1}".format(reddit_url,sub.permalink)])
 
 def process_queries(csv_queryfile, pushAPI, outfolder):
     with open(csv_queryfile, 'r', encoding="utf-8") as queries:
