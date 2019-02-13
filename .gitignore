@@ -2,6 +2,9 @@ praw.ini
 submissions/*.json
 submissions/**/*.json
 submission_ids/*.csv
+TwitterScraper/**/*.ini
+TwitterScraper/**/cookies.txt
+TwitterScraper/scraper/twitter_credentials.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -107,3 +110,5 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+
