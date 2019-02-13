@@ -41,7 +41,7 @@ def submissioninfo(submission):
     sub_data['submission_id'] = submission.id
     sub_data['created'] = utctodate(submission.created_utc)
     sub_data['num_comments'] = submission.num_comments
-    sub_data['url'] = "{0}{1}".format(reddit_url,submission.permalink)
+    sub_data['url'] = submission.permalink
     sub_data['text_url'] = submission.url
     sub_data['upvotes'] = submission.score
     sub_data['is_video'] = submission.is_video
@@ -204,8 +204,8 @@ def main(argv):
 
     process_queries('queries.csv', pushAPI, submission_ids)
 
-    for info_file in os.listdir(submission_ids):
-        process_submissions(reddit, datafolder, os.path.join(submission_ids, info_file))   
+    # for info_file in os.listdir(submission_ids):
+    #     process_submissions(reddit, datafolder, os.path.join(submission_ids, info_file))   
 
 
 if __name__ == "__main__":
