@@ -163,10 +163,12 @@ def process_queries(csv_queryfile, pushAPI, outfolder):
             subs = list(pushAPI.search_submissions(
                         after=after_date,
                         before=before_date,
-                        subreddit='Denmark',
+                        subreddit='Denmark,denmark2,DKpol,GammelDansk',
                         q=query,
-                        limit=50,
+                        limit=100,
                         score='>{0}'.format(score)))
+            for sub in subs:
+                print(sub.title)
             outfilepath = os.path.join(outfolder, filename)
             fetch_all_for_topic(outfilepath, topic, subs)
 
