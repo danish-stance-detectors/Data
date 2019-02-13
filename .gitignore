@@ -1,7 +1,7 @@
-praw.ini
-submissions/*.json
-submissions/**/*.json
-submission_ids/*.csv
+Reddit/praw.ini
+Reddit/submissions/*.json
+Reddit/submissions/**/*.json
+Reddit/submission_ids/*.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
