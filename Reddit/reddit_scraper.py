@@ -144,24 +144,33 @@ def process_submissions(reddit, datafolder, submission_ids):
                 json.dump(sub_data, outfile, ensure_ascii=False)
 
 def fetch_all_for_topic(csvfile, topic, submissions):
-    write_header = not os.path.exists(csvfile)
-    with open(csvfile, 'a+', encoding="utf-8", newline='') as out:
+    comment_count = 0
+    with open(csvfile, 'w+', encoding="utf-8", newline='') as out:
         csvwriter = csv.writer(out)
-        if write_header:
-            csvwriter.writerow(['sub_id', 'topic', 'title', 'url'])
-        for sub in submissions: #reddit.subreddit('Denmark').search(query):
+        csvwriter.writerow(['sub_id', 'topic', 'title', 'url'])
+        for sub in submissions: 
+            comment_count += sub.num_comments
             csvwriter.writerow([sub.id, topic, sub.title, "{0}{1}".format(reddit_url,sub.permalink)])
+    return comment_count
 
 def process_queries(csv_queryfile, pushAPI, outfolder):
-    with open(csv_queryfile, 'r', encoding="utf-8") as queries:
-        for line in queries.readlines()[1:]: #skip csv header
+    queries = {}
+    comment_counts = {}
+    with open(csv_queryfile, 'r', encoding="utf-8") as csvfile:
+        for line in csvfile.readlines()[1:]: #skip csv header
             vals = line.split(',')
-            filename = vals[0].strip()
-            topic = vals[1].strip()
-            query = vals[2].strip()
-            after_date = datetoutc(vals[3].strip().split('-')) #YYYY-M-D
-            before_date = datetoutc(vals[4].strip().split('-')) #YYYY-M-D
-            score = vals[5].strip() #lower limit score
+            topic = vals[0].strip()
+            if (not topic in queries):
+                queries[topic] = []
+            queries[topic].append(vals)            
+    for topic, entries in queries.items():
+        submissions = []
+        print("### %s ###" % topic)
+        for entry in entries:
+            query = entry[1].strip()
+            after_date = datetoutc(entry[2].strip().split('-')) #YYYY-M-D
+            before_date = datetoutc(entry[3].strip().split('-')) #YYYY-M-D
+            score = entry[4].strip() #lower limit score
             subs = list(pushAPI.search_submissions(
                         after=after_date,
                         before=before_date,
@@ -169,10 +178,25 @@ def process_queries(csv_queryfile, pushAPI, outfolder):
                         q=query,
                         limit=100,
                         score='>{0}'.format(score)))
+            comments_per_query = 0
             for sub in subs:
-                print(sub.title)
-            outfilepath = os.path.join(outfolder, filename)
-            fetch_all_for_topic(outfilepath, topic, subs)
+                comments_per_query += sub.num_comments
+            print("Query:%-15s\tComments:%d" % (query,comments_per_query))
+            if (not subs):
+                print("Empty: ", query)
+                continue
+            submissions.extend(subs)
+        print()
+        outfilepath = os.path.join(outfolder, "{0}.csv".format(topic))
+        comment_count = fetch_all_for_topic(outfilepath, topic, submissions)
+        comment_counts[topic] = comment_count
+    
+    total_count = 0
+    print()
+    for topic, count in comment_counts.items():
+        total_count += count
+        print("Topic:%-15s\tComments:%d" % (topic,count))
+    print("Total comments: ", total_count)
 
 
 def main(argv):
@@ -204,8 +228,8 @@ def main(argv):
 
     process_queries('queries.csv', pushAPI, submission_ids)
 
-    # for info_file in os.listdir(submission_ids):
-    #     process_submissions(reddit, datafolder, os.path.join(submission_ids, info_file))   
+    for info_file in os.listdir(submission_ids):
+        process_submissions(reddit, datafolder, os.path.join(submission_ids, info_file))   
 
 
 if __name__ == "__main__":
