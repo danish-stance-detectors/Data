@@ -1,22 +1,16 @@
-filename,topic,query,after,before,score
-peter-madsen.csv,peter-madsen,"peter madsen",2017-8-1,2018-1-1,10
-peter-madsen.csv,peter-madsen,ubådssagen,2017-8-1,2018-1-1,10
-peter-madsen.csv,peter-madsen,ubåd,2017-8-1,2018-1-1,10
-peter-madsen.csv,peter-madsen,"Kim Wall",2017-8-1,2018-1-1,10
-ulve.csv,ulve,ulv,2012-1-1,2019-1-1,5
-ulve.csv,ulve,ulvesagen,2012-1-1,2019-1-1,5
-hpv.csv,hpv,"hpv vaccine",2015-1-1,2019-1-1, 5
-hpv.csv,hpv,"hpv-vaccine",2015-1-1,2019-1-1, 5
-hpv.csv,hpv,"de vaccinerede piger",2015-1-1,2019-1-1, 5
-hpv.csv,hpv,"vaccine-stop",2015-1-1,2019-1-1, 5
-anna-mee.csv,anna-mee,"Anna Mee Allerslev",2017-1-1,2019-1-1,5
-anna-mee.csv,anna-mee,"Anna Mee",2017-1-1,2019-1-1,5
-anna-mee.csv,anna-mee,"Anna Mee Allerslev-sagen",2017-1-1,2019-1-1,5
-anna-mee.csv,anna-mee,"Paradise Papers",2017-1-1,2019-1-1,5
-klima.csv,klima,klima,2015-1-1,2019-1-1,5
-me-too.csv,me-too,"#metoo",2016-1-1,2019-1-1,5
-me-too.csv,me-too,metoo,2016-1-1,2019-1-1,5
-kost.csv,kost,kostråd,2018-1-1,2019-1-1,5
-kost.csv,kost,kost,2018-1-1,2019-1-1,5
-kost.csv,kost,veganer,2018-1-1,2019-1-1,5
-kost.csv,kost,vegetar,2018-1-1,2019-1-1,5
+topic,query,after,before,score
+peter-madsen,"peter madsen",2017-8-1,2018-1-1,50
+peter-madsen,ubåd,2017-8-1,2018-1-1,10
+peter-madsen,"Kim Wall",2017-8-1,2018-1-1,50
+ulve,ulv,2012-1-1,2019-1-1,5
+ulve,ulvesagen,2012-1-1,2019-1-1,0
+hpv,"hpv vaccine",2015-1-1,2019-1-1,5
+hpv,"hpv-vaccine",2015-1-1,2019-1-1,5
+hpv,"de vaccinerede piger",2015-1-1,2019-1-1,5
+anna-mee,"Anna Mee",2017-1-1,2019-1-1,20
+anna-mee,"Paradise Papers",2017-1-1,2019-1-1,5
+klima,klima,2015-1-1,2019-1-1,5
+metoo,metoo,2016-1-1,2019-1-1,10
+kost,kost,2018-1-1,2019-1-1,5
+kost,veganer,2018-1-1,2019-1-1,5
+kost,vegetar,2018-1-1,2019-1-1,0
