@@ -2,6 +2,10 @@ Reddit/praw.ini
 Reddit/submissions/*.json
 Reddit/submissions/**/*.json
 Reddit/submission_ids/*.csv
+!Reddit/submission_ids/custom-selected.csv
+
+# Visual studio code
+.vscode
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
