@@ -1,13 +1,16 @@
 import praw 
 import prawcore.exceptions
+from psaw import PushshiftAPI
 import json
 import logging
-from datetime import datetime
+from datetime import datetime as dt
 import time
 import os
 import getopt
 import sys
 import csv
+
+reddit_url = "https://www.reddit.com"
 
 def enablelogging():
     """Enable logging. Will print HTTP calls to terminal."""
@@ -36,7 +39,7 @@ def submissioninfo(submission):
     sub_data['title'] = submission.title
     sub_data['text'] = submission.selftext
     sub_data['submission_id'] = submission.id
-    sub_data['created'] = convtime(submission.created_utc)
+    sub_data['created'] = utctodate(submission.created_utc)
     sub_data['num_comments'] = submission.num_comments
     sub_data['url'] = submission.permalink
     sub_data['text_url'] = submission.url
@@ -53,7 +56,7 @@ def userinfo(user):
         user_data['id'] = user.id
         user_data['username'] = user.name
         user_data['karma'] = user.comment_karma
-        user_data['created'] = convtime(user.created_utc)
+        user_data['created'] = utctodate(user.created_utc)
         user_data['gold_status'] = user.is_gold
         user_data['is_employee'] = user.is_employee
         user_data['has_verified_email'] = user.has_verified_email if user.has_verified_email is not None else False
@@ -66,7 +69,7 @@ def subredditinfo(subreddit, subreddit_id):
     subreddit_data = {}
     subreddit_data['name'] = subreddit.display_name
     subreddit_data['subreddit_id'] = subreddit_id
-    subreddit_data['created'] = convtime(subreddit.created_utc)
+    subreddit_data['created'] = utctodate(subreddit.created_utc)
     subreddit_data['subscribers'] = subreddit.subscribers
     return subreddit_data
 
@@ -91,7 +94,7 @@ def commentsinfo(comments):
             if ( data['text'] == '[deleted]'):
                 is_deleted = True
             data['is_deleted'] = is_deleted
-            data['created'] = convtime(comment.created_utc)
+            data['created'] = utctodate(comment.created_utc)
             data['is_submitter'] = comment.is_submitter
             data['submission_id'] = comment.link_id
             data['parent_id'] = comment.parent_id
@@ -105,9 +108,17 @@ def commentsinfo(comments):
         comments_data.append(data)
     return comments_data
 
-def convtime(utctime):
+def utctodate(utctime):
     """Convert POSIX time to YYYY-MM-DD HH:MM:SS"""
-    return datetime.utcfromtimestamp(utctime).strftime("%Y-%m-%d %H:%M:%S")
+    return dt.utcfromtimestamp(utctime).strftime("%Y-%m-%d %H:%M:%S")
+
+def datetoutc(date):
+    """Convert date in  list format [YYYY, M, D] to POSIX time"""
+    year = int(date[0])
+    month = int(date[1])
+    day = int(date[2])
+    return int(dt(year, month, day).timestamp())
+
 
 def process_submissions(reddit, datafolder, submission_ids):
     """Go through submission_ids and process information
@@ -132,12 +143,61 @@ def process_submissions(reddit, datafolder, submission_ids):
             with open(path, 'w', encoding="utf-8") as outfile:
                 json.dump(sub_data, outfile, ensure_ascii=False)
 
-def fetch_all_for_topic(reddit, csvfile, topic, query):
-    with open(csvfile, 'w', encoding="utf-8", newline='') as out:
+def fetch_all_for_topic(csvfile, topic, submissions):
+    comment_count = 0
+    with open(csvfile, 'w+', encoding="utf-8", newline='') as out:
         csvwriter = csv.writer(out)
         csvwriter.writerow(['sub_id', 'topic', 'title', 'url'])
-        for sub in reddit.subreddit('Denmark').search(query):
-            csvwriter.writerow([sub.id, topic, sub.title, "https://www.reddit.com{0}".format(sub.permalink)])
+        for sub in submissions: 
+            comment_count += sub.num_comments
+            csvwriter.writerow([sub.id, topic, sub.title, "{0}{1}".format(reddit_url,sub.permalink)])
+    return comment_count
+
+def process_queries(csv_queryfile, pushAPI, outfolder):
+    queries = {}
+    comment_counts = {}
+    with open(csv_queryfile, 'r', encoding="utf-8") as csvfile:
+        for line in csvfile.readlines()[1:]: #skip csv header
+            vals = line.split(',')
+            topic = vals[0].strip()
+            if (not topic in queries):
+                queries[topic] = []
+            queries[topic].append(vals)            
+    for topic, entries in queries.items():
+        submissions = []
+        print("### %s ###" % topic)
+        for entry in entries:
+            query = entry[1].strip()
+            after_date = datetoutc(entry[2].strip().split('-')) #YYYY-M-D
+            before_date = datetoutc(entry[3].strip().split('-')) #YYYY-M-D
+            score = entry[4].strip() #lower limit score
+            subs = list(pushAPI.search_submissions(
+                        after=after_date,
+                        before=before_date,
+                        subreddit='Denmark,denmark2,DKpol,GammelDansk',
+                        q=query,
+                        limit=100,
+                        score='>{0}'.format(score)))
+            comments_per_query = 0
+            for sub in subs:
+                comments_per_query += sub.num_comments
+            print("Query:%-15s\tComments:%d" % (query,comments_per_query))
+            if (not subs):
+                print("Empty: ", query)
+                continue
+            submissions.extend(subs)
+        print()
+        outfilepath = os.path.join(outfolder, "{0}.csv".format(topic))
+        comment_count = fetch_all_for_topic(outfilepath, topic, submissions)
+        comment_counts[topic] = comment_count
+    
+    total_count = 0
+    print()
+    for topic, count in comment_counts.items():
+        total_count += count
+        print("Topic:%-15s\tComments:%d" % (topic,count))
+    print("Total comments: ", total_count)
+
 
 def main(argv):
     reddit = None
@@ -159,13 +219,14 @@ def main(argv):
             sys.exit(help_msg)
 
     if not reddit:
-        sys.exit("Reddit instance coult not be obtained!\nSee '-help' for more information")
+        sys.exit("Reddit instance could not be obtained!\nSee '-help' for more information")
+
+    pushAPI = PushshiftAPI(reddit)
 
     datafolder = "submissions/"
     submission_ids = "submission_ids/"
 
-    #TODO: Read topic and query come from a file and create csv file manually
-    fetch_all_for_topic(reddit, os.path.join(submission_ids, 'ulvesagen.csv'), 'ulvesagen', 'ulv self:yes AND NOT flair:Humor')
+    process_queries('queries.csv', pushAPI, submission_ids)
 
     for info_file in os.listdir(submission_ids):
         process_submissions(reddit, datafolder, os.path.join(submission_ids, info_file))   

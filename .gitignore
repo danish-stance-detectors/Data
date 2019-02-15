@@ -1,10 +1,14 @@
-praw.ini
-submissions/*.json
-submissions/**/*.json
-submission_ids/*.csv
+Reddit/praw.ini
+Reddit/submissions/*.json
+Reddit/submissions/**/*.json
+Reddit/submission_ids/*.csv
+!Reddit/submission_ids/custom-selected.csv
 TwitterScraper/**/*.ini
 TwitterScraper/**/cookies.txt
 TwitterScraper/scraper/twitter_credentials.json
+
+# Visual studio code
+.vscode
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

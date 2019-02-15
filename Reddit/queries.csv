@@ -1,0 +1,16 @@
+topic,query,after,before,score
+peter-madsen,"peter madsen",2017-8-1,2018-1-1,50
+peter-madsen,ubåd,2017-8-1,2018-1-1,10
+peter-madsen,"Kim Wall",2017-8-1,2018-1-1,50
+ulve,ulv,2012-1-1,2019-1-1,5
+ulve,ulvesagen,2012-1-1,2019-1-1,0
+hpv,"hpv vaccine",2015-1-1,2019-1-1,5
+hpv,"hpv-vaccine",2015-1-1,2019-1-1,5
+hpv,"de vaccinerede piger",2015-1-1,2019-1-1,5
+anna-mee,"Anna Mee",2017-1-1,2019-1-1,20
+anna-mee,"Paradise Papers",2017-1-1,2019-1-1,5
+klima,klima,2015-1-1,2019-1-1,5
+metoo,metoo,2016-1-1,2019-1-1,10
+kost,kost,2018-1-1,2019-1-1,5
+kost,veganer,2018-1-1,2019-1-1,5
+kost,vegetar,2018-1-1,2019-1-1,0
