@@ -13,7 +13,7 @@ def prepare_sequence(seq, to_ix):
     return torch.tensor(idxs)
     
 def save_obj(obj, filename):
-    with open(filename, 'wb', encoding='utf8') as f:
+    with open(filename, 'wb') as f:
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
 def load_obj(name):
