@@ -4,13 +4,15 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-import getopt, sys
+import argparse
+import getopt 
+import sys
 
 dsl_file = 'dsl_sentences.txt'
 
-def prepare_sequence(seq, to_ix):
+def prepare_sequence(seq, to_ix, device='cpu'):
     idxs = [to_ix[w] for w in seq]
-    return torch.tensor(idxs)
+    return torch.tensor(idxs, device=device)
     
 def save_obj(obj, filename):
     with open(filename, 'wb') as f:
@@ -25,7 +27,7 @@ def load_data(data_file):
     word_to_ix = {}
     tag_to_ix = {}
     with open(data_file, 'r', encoding='utf8') as data:
-        for line in data.readlines():
+        for line in data.readlines()[:50]:
             instances = line.rstrip('\n').split('\t')
             sentence = instances[0].split()
             pos_tags = instances[1].split()
@@ -58,10 +60,15 @@ class LSTMPOSTagger(nn.Module):
         tag_scores = F.log_softmax(tag_space, dim=1)
         return tag_scores
 
-def train_and_save(emb_dim, hidden_dim, epochs, data_file):
+def train_and_save(args, emb_dim, hidden_dim, epochs, data_file, cuda=False):
     if not data_file:
         exit(2)
-    model = LSTMPOSTagger(emb_dim, hidden_dim, data_file)
+    args.device = None
+    if cuda and torch.cuda.is_available():
+        args.device = torch.device('cuda')
+    else:
+        args.device = torch.device('cpu')
+    model = LSTMPOSTagger(emb_dim, hidden_dim, data_file).to(args.device)
     loss_function = nn.NLLLoss()
     optimizer = optim.SGD(model.parameters(), lr=0.1)
     training_data = model.training_data
@@ -73,8 +80,8 @@ def train_and_save(emb_dim, hidden_dim, epochs, data_file):
         for sentence, tags in training_data:
             model.zero_grad()
 
-            sentence_in = prepare_sequence(sentence, model.word_dict)
-            targets = prepare_sequence(tags, model.tag_dict)
+            sentence_in = prepare_sequence(sentence, model.word_dict, args.device)
+            targets = prepare_sequence(tags, model.tag_dict, args.device)
 
             tag_scores = model(sentence_in)
 
@@ -106,26 +113,14 @@ def predict_pos_tags(model, sentence_tokens):
 
 
 def main(argv):
-    emb_dim = 50
-    hidden_dim = 50
-    epochs = 10
-    data_file = ""
-    try:
-        opts, _ = getopt.getopt(argv, "e:h:f:", ["emb_dim=","hidden_dim=","filename=","help"])
-    except getopt.GetoptError:
-        print("see: pos_tagger.py -help")
-        sys.exit(2)
-    for opt, arg in opts:
-        if opt in ('-e', '-emb_dim'):
-            emb_dim = arg
-        elif opt in ('-h', '-hidden_dim'):
-            hidden_dim = arg
-        elif opt in ('-f', '-filename'):
-            data_file = arg
-        elif opt in '-help':
-            print('Run: pos_tagger -emb_dim=<EMBEDDING SIZE> -hidden_dim=<HIDDEN DIMINSIONS> -filename=<TRAIN DATA FILE>')
-
-    train_and_save(emb_dim, hidden_dim, epochs, data_file)
+    parser = argparse.ArgumentParser(description='Train and save POS tagging model')
+    parser.add_argument('-ed', '--emb_dim', dest='emb_dim', nargs='?', default='50', type=int, help='Embedding dimensions')
+    parser.add_argument('-hd', '--hidden_dim', dest='hidden_dim', nargs='?', default='50', type=int, help='Hidden dimensions')
+    parser.add_argument('-e', '--epochs', dest='epochs', nargs='?', default='10', type=int, help='Number of training epochs')
+    parser.add_argument('-f', '--file', dest='data_file', default=dsl_file, help='Filename of data file')
+    parser.add_argument('-c', '--cuda', dest='cuda', action='store_true', help='Enable CUDA')
+    args = parser.parse_args(argv)
+    train_and_save(args, args.emb_dim, args.hidden_dim, args.epochs, args.data_file, args.cuda)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
