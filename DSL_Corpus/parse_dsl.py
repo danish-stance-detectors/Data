@@ -14,15 +14,22 @@ def parse_file(file_path):
     start_tag = "<s"
     end_tag = "</s>"
     current_sentence = ""
+    current_pos_tags = ""
     sentences = []
     with open(file_path, "r", encoding="utf8") as txt_file:
         for line in txt_file.readlines():
             if line.startswith(end_tag):
-                sentences.append(current_sentence.strip())
+                s = current_sentence.strip() + '\t' + current_pos_tags
+                sentences.append(s)
                 current_sentence = ""
+                current_pos_tags = ""
             elif not line.startswith(start_tag):
-                first_word = line.split("\t")[0]
+                instance = line.split("\t")
+                first_word = instance[0]
+                epos_tag = instance[5]
+                pos_class = epos_tag.split(':')[0]
                 current_sentence += (first_word + " ")
+                current_pos_tags += (pos_class + " ")
 
     return sentences
 

@@ -8,6 +8,8 @@ TwitterScraper/**/cookies.txt
 TwitterScraper/scraper/twitter_credentials.json
 DSL_Corpus/dsl_corpus_data/**
 DSL_Corpus/dsl_sentences.txt
+DSL_Corpus/*.pkl
+Wiki_Corpus/*.txt
 
 # Visual studio code
 .vscode
