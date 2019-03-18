@@ -124,7 +124,7 @@ def process_submissions(reddit, datafolder, submission_ids):
     """Go through submission_ids and process information
     from reddit for each Submission and output in JSON into
     respective folders in the datafolder, depending on their topic"""
-    with open(submission_ids, 'r') as subids:
+    with open(submission_ids, 'r', encoding='utf-8') as subids:
         for line in subids.readlines()[1:]: #skip header
             vals = line.split(',')
             subid = vals[0].strip()
