@@ -7,8 +7,9 @@ import torch.optim as optim
 import argparse
 import getopt 
 import sys
+from random import shuffle
 
-dsl_file = 'dsl_sentences.txt'
+dsl_file = 'dsl_sentences_pos.txt'
 
 def prepare_sequence(seq, to_ix, device='cpu'):
     idxs = [to_ix[w] for w in seq]
@@ -22,12 +23,19 @@ def load_obj(name):
     with open(name, 'rb') as f:
         return pickle.load(f)
 
-def load_data(data_file):
+def load_data(data_file, cap=2000, shuffle_lines=True):
     training_data = []
     word_to_ix = {}
     tag_to_ix = {}
     with open(data_file, 'r', encoding='utf8') as data:
-        for line in data.readlines()[:50]:
+        print('Readling lines...')
+        lines = data.readlines()
+        print('Done')
+        if shuffle_lines:
+            print('Shuffling lines')
+            shuffle(lines)
+        print('Preprocessing %d lines' % cap)
+        for line in lines[:cap]:
             instances = line.rstrip('\n').split('\t')
             sentence = instances[0].split()
             pos_tags = instances[1].split()
@@ -38,14 +46,15 @@ def load_data(data_file):
                 if pos_tag not in tag_to_ix:
                     tag_to_ix[pos_tag] = len(tag_to_ix)
             training_data.append((sentence, pos_tags))
+        print('Done')
     return training_data, word_to_ix, tag_to_ix
 
 class LSTMPOSTagger(nn.Module):
     
-    def __init__(self, embedding_dim, hidden_dim, data_file):
+    def __init__(self, embedding_dim, hidden_dim, data_file, lines):
         super(LSTMPOSTagger, self).__init__()
         self.hidden_dim = hidden_dim
-        training_data, word_dict, tag_dict = load_data(data_file)
+        training_data, word_dict, tag_dict = load_data(data_file, cap=lines)
         self.training_data = training_data
         self.word_dict = word_dict
         self.tag_dict = tag_dict
@@ -60,7 +69,7 @@ class LSTMPOSTagger(nn.Module):
         tag_scores = F.log_softmax(tag_space, dim=1)
         return tag_scores
 
-def train_and_save(args, emb_dim, hidden_dim, epochs, data_file, cuda=False):
+def train_and_save(args, emb_dim, hidden_dim, epochs, lines, data_file, cuda=False):
     if not data_file:
         exit(2)
     args.device = None
@@ -68,12 +77,13 @@ def train_and_save(args, emb_dim, hidden_dim, epochs, data_file, cuda=False):
         args.device = torch.device('cuda')
     else:
         args.device = torch.device('cpu')
-    model = LSTMPOSTagger(emb_dim, hidden_dim, data_file).to(args.device)
+    model = LSTMPOSTagger(emb_dim, hidden_dim, data_file, lines).to(args.device)
     loss_function = nn.NLLLoss()
     optimizer = optim.SGD(model.parameters(), lr=0.1)
     training_data = model.training_data
 
     # Train
+    print('Training...')
     n = len(training_data)
     for epoch in range(epochs):
         avg_loss = 0.0
@@ -91,10 +101,11 @@ def train_and_save(args, emb_dim, hidden_dim, epochs, data_file, cuda=False):
             optimizer.step()
         avg_loss /= n
         print("Epoch: {0}\tavg_loss: {1}".format(epoch, avg_loss))
-
+    print('Done')
+    print('Saving parameters...')
     torch.save(model.state_dict(), 
-        'model_state_dict_emb{0}_hidden{1}_epoch{2}.pt'.format(emb_dim, hidden_dim, epochs))
-
+        'model_state_dict_lines{0}_emb{1}_hidden{2}_epoch{3}.pt'.format(lines, emb_dim, hidden_dim, epochs))
+    print('Done')
     return model
 
 def load_model(model_file_path, emb_dim, hidden_dim, data_file):
@@ -117,10 +128,11 @@ def main(argv):
     parser.add_argument('-ed', '--emb_dim', dest='emb_dim', nargs='?', default='50', type=int, help='Embedding dimensions')
     parser.add_argument('-hd', '--hidden_dim', dest='hidden_dim', nargs='?', default='50', type=int, help='Hidden dimensions')
     parser.add_argument('-e', '--epochs', dest='epochs', nargs='?', default='10', type=int, help='Number of training epochs')
+    parser.add_argument('-l', '--lines', dest='lines', nargs='?', default='2000', type=int, help='Number of training lines')
     parser.add_argument('-f', '--file', dest='data_file', default=dsl_file, help='Filename of data file')
     parser.add_argument('-c', '--cuda', dest='cuda', action='store_true', help='Enable CUDA')
     args = parser.parse_args(argv)
-    train_and_save(args, args.emb_dim, args.hidden_dim, args.epochs, args.data_file, args.cuda)
+    train_and_save(args, args.emb_dim, args.hidden_dim, args.epochs, args.lines, args.data_file, args.cuda)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
