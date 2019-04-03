@@ -80,7 +80,7 @@ def train_and_save(args, emb_dim, hidden_dim, epochs, data_file, cuda=False):
         args.device = torch.device('cpu')
     X, y, word_to_ix, tag_to_ix = load_data(data_file)
     X_train, X_val, y_train, y_val = train_test_split(
-        X, y, test_size=0.33, random_state=rand, stratify=y 
+        X, y, test_size=0.33 
     )
     data = {
         'train': list(zip(X_train, y_train)),
@@ -92,43 +92,46 @@ def train_and_save(args, emb_dim, hidden_dim, epochs, data_file, cuda=False):
     }
     for split, size in dataset_sizes.items():
         print(split, size)
-        
+
     model = LSTMPOSTagger(emb_dim, hidden_dim, word_to_ix, tag_to_ix, epochs).to(args.device)
     loss_function = nn.NLLLoss()
     optimizer = optim.SGD(model.parameters(), lr=0.1)
 
     # Train
     print('Training...')
-    for epoch in range(epochs):
-        print("*****Epoch {}*****".format(epoch))
-        for phase, dataset in data.items():
-            if phase == 'train':
-                model.train()
-            else:
-                model.eval()
-            running_loss = 0.0
-            running_corrects = 0
+    with open('pos_tagger_output.csv', 'w+') as outfile:
+        for epoch in range(epochs):
+            print("*****Epoch {}*****".format(epoch))
+            for phase, dataset in data.items():
+                if phase == 'train':
+                    model.train()
+                else:
+                    model.eval()
+                running_loss = 0.0
+                running_corrects = 0
 
-            for sentence, tags in dataset:
-                model.zero_grad()
+                for sentence, tags in dataset:
+                    model.zero_grad()
 
-                sentence_in = prepare_sequence(sentence, word_to_ix, args.device)
-                targets = prepare_sequence(tags, tag_to_ix, args.device)
+                    sentence_in = prepare_sequence(sentence, word_to_ix, args.device)
+                    targets = prepare_sequence(tags, tag_to_ix, args.device)
 
-                with torch.set_grad_enabled(phase == 'train'):
-                    tag_scores = model(sentence_in)
-                    _, preds = torch.max(tag_scores, 1)
-                    loss = loss_function(tag_scores, targets)
-                    if phase == 'train':
-                        loss.backward()
-                        optimizer.step()
+                    with torch.set_grad_enabled(phase == 'train'):
+                        tag_scores = model(sentence_in)
+                        _, preds = torch.max(tag_scores, 1)
+                        loss = loss_function(tag_scores, targets)
+                        if phase == 'train':
+                            loss.backward()
+                            optimizer.step()
 
-                running_loss += loss.item()
-                running_corrects += torch.sum(preds == targets.data)
-            epoch_loss = running_loss / dataset_sizes[phase]
-            epoch_acc = float(running_corrects) / dataset_sizes[phase]
-            print('{:10} loss: {:.4f} Acc: {:.4f}'.format(
-                phase, epoch_loss, epoch_acc))
+                    running_loss += loss.item()
+                    running_corrects += torch.sum(preds == targets.data)
+                epoch_loss = running_loss / dataset_sizes[phase]
+                epoch_acc = float(running_corrects) / dataset_sizes[phase]
+                stats = '{:10} loss: {:.4f} Acc: {:.4f}'.format(
+                    phase, epoch_loss, epoch_acc)
+                print(stats)
+                outfile.write(stats + '\n')
     print('Done')
     print('Saving parameters...')
     checkpoint = {
