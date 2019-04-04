@@ -8,13 +8,14 @@ import argparse
 import getopt 
 import sys
 import random
+from gensim.models.keyedvectors import KeyedVectors
 from sklearn.model_selection import train_test_split
 
 dsl_file = 'dsl_sentences_pos.txt'
 rand = random.Random(42)
 
 def prepare_sequence(seq, to_ix, device='cpu'):
-    idxs = [to_ix[w] for w in seq]
+    idxs = [to_ix[w] if w in to_ix else 0 for w in seq]
     return torch.tensor(idxs, device=device)
     
 def save_obj(obj, filename):
@@ -25,11 +26,13 @@ def load_obj(name):
     with open(name, 'rb') as f:
         return pickle.load(f)
 
-def load_data(data_file, cap=10000, shuffle_lines=True):
+def load_data(data_file, cap, shuffle_lines=True):
     X = []
     y = []
     word_to_ix = {}
+    word_to_ix = {'<OOV>': 0}
     tag_to_ix = {}
+    tag_to_ix = {'<OOV>': 0}
     with open(data_file, 'r', encoding='utf8') as data:
         print('Readling lines...')
         lines = data.readlines()
@@ -53,13 +56,17 @@ def load_data(data_file, cap=10000, shuffle_lines=True):
 
 class LSTMPOSTagger(nn.Module):
     
-    def __init__(self, embedding_dim, hidden_dim, word_dict, tag_dict, epochs):
+    def __init__(self, embedding_dim, hidden_dim, word_dict, tag_dict, epochs, pre_trained_weights=None):
         super(LSTMPOSTagger, self).__init__()
         self.hidden_dim = hidden_dim
         self.word_dict = word_dict
         self.tag_dict = tag_dict
+        self.ix_to_tag = {v: k for k, v in tag_dict.items()}
         self.epochs = epochs
-        self.word_embeddings = nn.Embedding(len(word_dict), embedding_dim)
+        if pre_trained_weights:
+            self.word_embeddings = nn.Embedding.from_pretrained(pre_trained_weights)
+        else:
+            self.word_embeddings = nn.Embedding(len(word_dict), embedding_dim, padding_idx=0)
         self.lstm = nn.LSTM(embedding_dim, hidden_dim)
         self.hidden2tag = nn.Linear(hidden_dim, len(tag_dict))
 
@@ -70,7 +77,7 @@ class LSTMPOSTagger(nn.Module):
         tag_scores = F.log_softmax(tag_space, dim=1)
         return tag_scores
 
-def train_and_save(args, emb_dim, hidden_dim, epochs, data_file, cuda=False):
+def train_and_save(args, emb_dim, hidden_dim, epochs, data_file, lines=100000, word_embeddings=None, cuda=False):
     if not data_file:
         exit(2)
     args.device = None
@@ -78,7 +85,7 @@ def train_and_save(args, emb_dim, hidden_dim, epochs, data_file, cuda=False):
         args.device = torch.device('cuda')
     else:
         args.device = torch.device('cpu')
-    X, y, word_to_ix, tag_to_ix = load_data(data_file)
+    X, y, word_to_ix, tag_to_ix = load_data(data_file, cap=lines)
     X_train, X_val, y_train, y_val = train_test_split(
         X, y, test_size=0.33 
     )
@@ -93,7 +100,10 @@ def train_and_save(args, emb_dim, hidden_dim, epochs, data_file, cuda=False):
     for split, size in dataset_sizes.items():
         print(split, size)
 
-    model = LSTMPOSTagger(emb_dim, hidden_dim, word_to_ix, tag_to_ix, epochs).to(args.device)
+    if word_embeddings:
+        word_embeddings = torch.FloatTensor(KeyedVectors.load(word_embeddings))
+
+    model = LSTMPOSTagger(emb_dim, hidden_dim, word_to_ix, tag_to_ix, epochs, word_embeddings).to(args.device)
     loss_function = nn.NLLLoss()
     optimizer = optim.SGD(model.parameters(), lr=0.1)
 
@@ -144,13 +154,8 @@ def train_and_save(args, emb_dim, hidden_dim, epochs, data_file, cuda=False):
     print('Done')
     return model
 
-# def load_model(model_file_path, emb_dim, hidden_dim, data_file):
-#     model = LSTMPOSTagger(emb_dim, hidden_dim, data_file)
-#     model.load_state_dict(torch.load(model_file_path))
-#     return model
-
 def load_checkpoint_for_eval(filepath):
-    checkpoint = torch.load(filepath)
+    checkpoint = torch.load(filepath, map_location='cpu')
     model = checkpoint['model']
     model.load_state_dict(checkpoint['state_dict'])
     for parameter in model.parameters():
@@ -164,6 +169,9 @@ def predict_pos_tags(model, sentence_tokens):
         inputs = prepare_sequence(sentence_tokens, model.word_dict)
         tag_scores = model(inputs)
         predicted = torch.argmax(tag_scores.data, dim=1)
+        tags = []
+        for pos_tag_id in predicted.data():
+            tags.append(model.ix_to_tag[pos_tag_id])
         return predicted
 
 
@@ -172,11 +180,16 @@ def main(argv):
     parser.add_argument('-ed', '--emb_dim', dest='emb_dim', nargs='?', default='50', type=int, help='Embedding dimensions')
     parser.add_argument('-hd', '--hidden_dim', dest='hidden_dim', nargs='?', default='50', type=int, help='Hidden dimensions')
     parser.add_argument('-e', '--epochs', dest='epochs', nargs='?', default='10', type=int, help='Number of training epochs')
-    # parser.add_argument('-l', '--lines', dest='lines', nargs='?', default='2000', type=int, help='Number of training lines')
+    parser.add_argument('-l', '--lines', dest='lines', nargs='?', default='100000', type=int, help='Number of training lines')
     parser.add_argument('-f', '--file', dest='data_file', default=dsl_file, help='Filename of data file')
+    parser.add_argument('-w-', '--word_embeddings', dest='word_embeddings', nargs='?', help='Filename of pretrained word embeddings')
     parser.add_argument('-c', '--cuda', dest='cuda', action='store_true', help='Enable CUDA')
     args = parser.parse_args(argv)
-    train_and_save(args, args.emb_dim, args.hidden_dim, args.epochs, args.data_file, args.cuda)
+    train_and_save(args, args.emb_dim, args.hidden_dim, args.epochs, args.data_file, args.lines, args.word_embeddings, args.cuda)
+    # model = load_checkpoint_for_eval('model_checkpoint_emb100_hidden100_epoch100.pt')
+    # tokens = "der var simpelthen ikke forsyninger nok som nåede frem til fronten til at et ordentligt forsvar kunne organiseres for slet ikke at tale om offensive operationer".split()
+    # print(predict_pos_tags(model, tokens))
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])
