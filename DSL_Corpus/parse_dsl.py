@@ -1,6 +1,11 @@
 import os, fnmatch
+import argparse
 
 dsl_data_folder = "./dsl_corpus_data/"
+
+parser = argparse.ArgumentParser(description='Parse DSL data')
+parser.add_argument('-p', '--pos', dest='pos', action='store_true', help='Include POS tags')
+args = parser.parse_args()
 
 def find_files(path, filter):
     file_paths = []
@@ -43,11 +48,14 @@ def save_all_files(file_path_list, output_path):
     
     with open(output_path, "a+", encoding="utf8") as output_file:
         for file_path in file_path_list:
-            sentences = parse_file(file_path)
+            sentences = parse_file(file_path, args.pos)
 
             for sentence in sentences:
                 output_file.write("%s\n" % sentence)
 
 files = find_files(dsl_data_folder, "*.txt")
 
-save_all_files(files, "./dsl_sentences.txt")
+if args.pos:
+    save_all_files(files, "./dsl_sentences_pos")
+else:
+    save_all_files(files, "./dsl_sentences.txt")
