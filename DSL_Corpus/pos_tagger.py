@@ -7,6 +7,7 @@ import torch.optim as optim
 import argparse
 import getopt 
 import sys
+import csv
 import random
 from gensim.models.keyedvectors import KeyedVectors
 from sklearn.model_selection import train_test_split
@@ -82,10 +83,11 @@ class LSTMPOSTagger(nn.Module):
         tag_scores = F.log_softmax(tag_space, dim=1)
         return tag_scores
 
-def train_and_save(args, emb_dim, hidden_dim, epochs, data_file, lines=100000, word_embeddings=None, cuda=False):
+def train_and_save(args, emb_dim, hidden_dim, epochs, data_file, dropout=0.5, lines=100000, word_embeddings=None, cuda=False):
     if not data_file:
         exit(2)
     args.device = None
+    print('Emb_dim:{}, hidden_dim:{}, epochs:{}, dropout:{}, lines:{}'.format(emb_dim, hidden_dim, epochs, dropout, lines))
     if cuda and torch.cuda.is_available():
         args.device = torch.device('cuda')
     else:
@@ -104,14 +106,18 @@ def train_and_save(args, emb_dim, hidden_dim, epochs, data_file, lines=100000, w
         print(split, size)
     model = None
     if word_embeddings:
+        print('Loading pretrained word vectors')
         word_embeddings = KeyedVectors.load_word2vec_format(word_embeddings).vectors
+        print('Done')
         word_embeddings = torch.tensor(word_embeddings)
-        model = LSTMPOSTagger(emb_dim, hidden_dim, tag_to_ix, pre_trained_weights=word_embeddings).to(args.device)
+        model = LSTMPOSTagger(emb_dim, hidden_dim, tag_to_ix, 
+                              dropout=dropout, pre_trained_weights=word_embeddings).to(args.device)
     else:
         model = LSTMPOSTagger(emb_dim, hidden_dim, tag_to_ix, word_dict=word_to_ix).to(args.device)
     loss_function = nn.NLLLoss()
     optimizer = optim.SGD(model.parameters(), lr=0.1)
-
+    train_stats = []
+    val_stats = []
     # Train
     print('Training...')
     with open('pos_tagger_output.txt', 'w+') as outfile:
@@ -149,18 +155,28 @@ def train_and_save(args, emb_dim, hidden_dim, epochs, data_file, lines=100000, w
                 stats = '{:10} loss: {:.4f} Acc: {:.4f}'.format(
                     phase, epoch_loss, epoch_acc)
                 print(stats)
-                outfile.write(stats + '\n')
+                if phase == 'train':
+                    train_stats.append((epoch_loss, epoch_acc))
+                else:
+                    val_stats.append((epoch_loss, epoch_acc))
     print('Done')
     print('Saving parameters...')
     checkpoint = {
-        # 'model': LSTMPOSTagger(emb_dim, hidden_dim, word_to_ix, tag_to_ix, epochs),
         'tag_dict': model.tag_dict,
         'state_dict': model.state_dict(),
         'optimizer': optimizer.state_dict()
     }
-    torch.save(checkpoint, 
-        'model_checkpoint_emb{0}_hidden{1}_epoch{2}.pt'.format(emb_dim, hidden_dim, epochs))
-    print('Done')
+    s = 'model_checkpoint_emb{0}_hidden{1}_epoch{2}.pt'.format(emb_dim, hidden_dim, epochs)
+    torch.save(checkpoint, s)
+    print('Saved to', s)
+    print('Saving output...')
+    s = 'emb_dim{}hidden_dim{}epochs{}dropout{}lines{}.csv'.format(emb_dim, hidden_dim, epochs, (int(dropout*100)), lines)
+    with open(s, 'w+', newline='') as outfile:
+        writer = csv.writer(outfile)
+        writer.writerow(['epoch', 'train_loss', 'train_acc', 'val_loss', 'val_acc'])
+        for epoch, ((train_loss, train_acc), (val_loss, val_acc)) in enumerate(zip(train_stats, val_stats)):
+            writer.writerow([epoch, train_loss, train_acc, val_loss, val_acc])
+    print('Saved to', s)
     return model
 
 def load_checkpoint_for_eval(filepath):
@@ -189,13 +205,15 @@ def main(argv):
     parser.add_argument('-ed', '--emb_dim', dest='emb_dim', nargs='?', default='300', type=int, help='Embedding dimensions')
     parser.add_argument('-hd', '--hidden_dim', dest='hidden_dim', nargs='?', default='200', type=int, help='Hidden dimensions')
     parser.add_argument('-e', '--epochs', dest='epochs', nargs='?', default='10', type=int, help='Number of training epochs')
+    parser.add_argument('-d', '--dropout', dest='dropout', nargs='?', default='0.5', type=float, help='Dropout')
     parser.add_argument('-l', '--lines', dest='lines', nargs='?', default='100000', type=int, help='Number of training lines')
     parser.add_argument('-f', '--file', dest='data_file', default=dsl_file, help='Filename of data file')
     parser.add_argument('-w-', '--word_embeddings', dest='word_embeddings', nargs='?', default=embeddings, 
                         help='Filename of pretrained word embeddings')
     parser.add_argument('-c', '--cuda', dest='cuda', action='store_true', default=False, help='Enable CUDA')
     args = parser.parse_args(argv)
-    train_and_save(args, args.emb_dim, args.hidden_dim, args.epochs, args.data_file, args.lines, args.word_embeddings, args.cuda)
+    train_and_save(args, args.emb_dim, args.hidden_dim, args.epochs, 
+                    args.data_file, args.dropout, args.lines, args.word_embeddings, args.cuda)
     # model = load_checkpoint_for_eval('model_checkpoint_emb100_hidden100_epoch100.pt')
     # tokens = "der var simpelthen ikke forsyninger nok som nåede frem til fronten til at et ordentligt forsvar kunne organiseres for slet ikke at tale om offensive operationer".split()
     # print(predict_pos_tags(model, tokens))
