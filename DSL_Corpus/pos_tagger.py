@@ -12,6 +12,7 @@ from gensim.models.keyedvectors import KeyedVectors
 from sklearn.model_selection import train_test_split
 
 dsl_file = 'dsl_sentences_pos.txt'
+embeddings = 'dsl_sentences_300_cbow_negative.txt'
 rand = random.Random(42)
 
 def prepare_sequence(seq, to_ix, device='cpu'):
@@ -37,8 +38,9 @@ def load_data(data_file, cap, shuffle_lines=True):
         print('Readling lines...')
         lines = data.readlines()
         if shuffle_lines:
+            print('  Shuffling lines...')
             rand.shuffle(lines)
-        print('Done')
+            print('  Done')
         for line in lines[:cap]:
             instances = line.rstrip('\n').split('\t')
             sentence = instances[0].split()
@@ -56,19 +58,22 @@ def load_data(data_file, cap, shuffle_lines=True):
 
 class LSTMPOSTagger(nn.Module):
     
-    def __init__(self, embedding_dim, hidden_dim, word_dict, tag_dict, epochs, pre_trained_weights=None):
+    def __init__(self, embedding_dim, hidden_dim, tag_dict, dropout=0.5, word_dict=None, pre_trained_weights=None):
         super(LSTMPOSTagger, self).__init__()
         self.hidden_dim = hidden_dim
-        self.word_dict = word_dict
+        if word_dict:
+            self.word_dict = word_dict
         self.tag_dict = tag_dict
-        self.ix_to_tag = {v: k for k, v in tag_dict.items()}
-        self.epochs = epochs
-        if pre_trained_weights:
+        # self.ix_to_tag = {v: k for k, v in tag_dict.items()}
+        if pre_trained_weights is not None:
             self.word_embeddings = nn.Embedding.from_pretrained(pre_trained_weights)
         else:
             self.word_embeddings = nn.Embedding(len(word_dict), embedding_dim, padding_idx=0)
         self.lstm = nn.LSTM(embedding_dim, hidden_dim)
-        self.hidden2tag = nn.Linear(hidden_dim, len(tag_dict))
+        self.hidden2tag = nn.Sequential(
+            nn.Linear(hidden_dim, len(tag_dict)),
+            nn.Dropout(p=dropout)
+        )
 
     def forward(self, sentence):
         embeds = self.word_embeddings(sentence)
@@ -86,9 +91,7 @@ def train_and_save(args, emb_dim, hidden_dim, epochs, data_file, lines=100000, w
     else:
         args.device = torch.device('cpu')
     X, y, word_to_ix, tag_to_ix = load_data(data_file, cap=lines)
-    X_train, X_val, y_train, y_val = train_test_split(
-        X, y, test_size=0.33 
-    )
+    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2)
     data = {
         'train': list(zip(X_train, y_train)),
         'val': list(zip(X_val, y_val))
@@ -99,17 +102,22 @@ def train_and_save(args, emb_dim, hidden_dim, epochs, data_file, lines=100000, w
     }
     for split, size in dataset_sizes.items():
         print(split, size)
-
+    model = None
     if word_embeddings:
-        word_embeddings = torch.FloatTensor(KeyedVectors.load(word_embeddings))
-
-    model = LSTMPOSTagger(emb_dim, hidden_dim, word_to_ix, tag_to_ix, epochs, word_embeddings).to(args.device)
+        word_embeddings = KeyedVectors.load_word2vec_format(word_embeddings).vectors
+        word_embeddings = torch.tensor(word_embeddings)
+        model = LSTMPOSTagger(emb_dim, hidden_dim, tag_to_ix, pre_trained_weights=word_embeddings).to(args.device)
+    else:
+        model = LSTMPOSTagger(emb_dim, hidden_dim, tag_to_ix, word_dict=word_to_ix).to(args.device)
     loss_function = nn.NLLLoss()
     optimizer = optim.SGD(model.parameters(), lr=0.1)
 
     # Train
     print('Training...')
-    with open('pos_tagger_output.csv', 'w+') as outfile:
+    with open('pos_tagger_output.txt', 'w+') as outfile:
+        outfile.write('emb_dim %d\n' % emb_dim)
+        outfile.write('hidden_dim %d\n' % hidden_dim)
+        outfile.write('epochs %d\n' % epochs)
         for epoch in range(epochs):
             print("*****Epoch {}*****".format(epoch))
             for phase, dataset in data.items():
@@ -145,7 +153,8 @@ def train_and_save(args, emb_dim, hidden_dim, epochs, data_file, lines=100000, w
     print('Done')
     print('Saving parameters...')
     checkpoint = {
-        'model': LSTMPOSTagger(emb_dim, hidden_dim, word_to_ix, tag_to_ix, epochs),
+        # 'model': LSTMPOSTagger(emb_dim, hidden_dim, word_to_ix, tag_to_ix, epochs),
+        'tag_dict': model.tag_dict,
         'state_dict': model.state_dict(),
         'optimizer': optimizer.state_dict()
     }
@@ -177,13 +186,14 @@ def predict_pos_tags(model, sentence_tokens):
 
 def main(argv):
     parser = argparse.ArgumentParser(description='Train and save POS tagging model')
-    parser.add_argument('-ed', '--emb_dim', dest='emb_dim', nargs='?', default='50', type=int, help='Embedding dimensions')
-    parser.add_argument('-hd', '--hidden_dim', dest='hidden_dim', nargs='?', default='50', type=int, help='Hidden dimensions')
+    parser.add_argument('-ed', '--emb_dim', dest='emb_dim', nargs='?', default='300', type=int, help='Embedding dimensions')
+    parser.add_argument('-hd', '--hidden_dim', dest='hidden_dim', nargs='?', default='200', type=int, help='Hidden dimensions')
     parser.add_argument('-e', '--epochs', dest='epochs', nargs='?', default='10', type=int, help='Number of training epochs')
     parser.add_argument('-l', '--lines', dest='lines', nargs='?', default='100000', type=int, help='Number of training lines')
     parser.add_argument('-f', '--file', dest='data_file', default=dsl_file, help='Filename of data file')
-    parser.add_argument('-w-', '--word_embeddings', dest='word_embeddings', nargs='?', help='Filename of pretrained word embeddings')
-    parser.add_argument('-c', '--cuda', dest='cuda', action='store_true', help='Enable CUDA')
+    parser.add_argument('-w-', '--word_embeddings', dest='word_embeddings', nargs='?', default=embeddings, 
+                        help='Filename of pretrained word embeddings')
+    parser.add_argument('-c', '--cuda', dest='cuda', action='store_true', default=False, help='Enable CUDA')
     args = parser.parse_args(argv)
     train_and_save(args, args.emb_dim, args.hidden_dim, args.epochs, args.data_file, args.lines, args.word_embeddings, args.cuda)
     # model = load_checkpoint_for_eval('model_checkpoint_emb100_hidden100_epoch100.pt')
