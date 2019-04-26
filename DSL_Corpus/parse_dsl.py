@@ -1,4 +1,6 @@
-import os, fnmatch
+import os, fnmatch, re
+
+punctuation = re.compile('[^a-zA-ZæøåÆØÅ0-9]')
 
 dsl_data_folder = "./dsl_corpus_data/"
 
@@ -19,15 +21,17 @@ def parse_file(file_path, pos_tags=False):
     with open(file_path, "r", encoding="utf8") as txt_file:
         for line in txt_file.readlines():
             if line.startswith(end_tag):
-                s = current_sentence.strip() + '\t'
+                s = current_sentence.strip()
                 if pos_tags:
-                    s += current_pos_tags
+                    s += '\t' + current_pos_tags
                     current_pos_tags = ""
                 sentences.append(s)
                 current_sentence = ""
             elif not line.startswith(start_tag):
                 instance = line.split("\t")
                 first_word = instance[0]
+                if len(first_word) == 1 and punctuation.match(first_word):
+                    continue
                 current_sentence += (first_word + " ")
                 if pos_tags:
                     epos_tag = instance[5]
