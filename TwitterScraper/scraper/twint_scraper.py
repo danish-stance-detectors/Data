@@ -8,8 +8,9 @@ import sys
 
 def main(argv):
     parser = argparse.ArgumentParser(description='Query twitter data')
-    parser.add_argument('-q', '--query', help='Query string')
+    parser.add_argument('-q', '--query', help='Query string', n_args='*')
     parser.add_argument('-o', '--out', help='Output folder name')
+    parser.add_argument('-tid', '--tweet_id', help='Tweet id')
     parser.add_argument('-lang', '--language', help='Set language filter.')
     parser.add_argument('-since', '--since', help='take tweets since some data of format "yyyy-mm-dd"')
     parser.add_argument('-until', '--until', help='take tweets until some data of format "yyyy-mm-dd"')
@@ -29,6 +30,7 @@ def main(argv):
         c.Get_replies = True
         c.Retweets = True
         c.Count = True
+        c.Hide_output = True
 
         c.Custom["tweets"] = ["id"]
         c.Custom["tweets"] = ["conversation_id"]
@@ -43,6 +45,8 @@ def main(argv):
             c.Output = 'output/' + args.out
 
         twint.run.Search(c)
+
+        
 
 if __name__ == "__main__":
     main(sys.argv[1:])

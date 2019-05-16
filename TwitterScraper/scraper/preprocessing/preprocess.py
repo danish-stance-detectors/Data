@@ -20,7 +20,7 @@ def main(argv):
             source = [c for c in tweets if int(c['has_parent_tweet']) == 0]
             if len(tweets) > 1 and len(source) > 0:
                 branches = sort_conversation(id, tweets)
-
+                branches.sort(key=lambda x: x[0]['created_at'])
                 # convert to reddit format
                 if args.reddit:
                     source = tweet_to_submission(source[0])
@@ -36,6 +36,8 @@ def main(argv):
 def sort_conversation(conv_id, conversation):
     bottom_tweets = find_bottom_tweets(conversation)
     branches = [find_branch_from_bottom(bt, conversation) for bt in bottom_tweets]
+    for branch in branches:
+        branch.sort(key=lambda x: x['created_at'])
 
     return branches
 
@@ -86,7 +88,7 @@ def read_twint_file(file_name):
             tweet = json.loads(line)
             if int(tweet['replies_count']) > 0 or int(tweet['has_parent_tweet']) > 0:
                 tweets.append(tweet)
-    
+
     return tweets
 
 # converts a tweet to reddit comment format
@@ -102,13 +104,14 @@ def tweet_to_reddit_format(tweet):
             'upvotes' : tweet['likes_count'],
             'is_submitter' : False,
             'is_deleted' : False,
+            'text_url' : '',
             'replies' : tweet['replies_count'],
             'user' : [],
             'submission_id' : tweet['conversation_id'],
             'SDQC_Submission' : 'Supporting',
             'SDQC_Parent' : 'Supporting',
             'Certainty' : 'Certain',
-            'Evidantiality' : 'No evidence,',
+            'Evidentiality' : 'No evidence,',
             'AnnotatedAt': '2019-03-21T08:33:08'
         }
     }
@@ -124,6 +127,9 @@ def tweet_to_submission(tweet):
         'created' : tweet['date'] + 'T' + tweet['time'],
         'num_comments' : tweet['replies_count'],
         'url' : tweet['link'],
+        'text_url' : '',
+        'is_video' : False,
+        'upvotes' : tweet['likes_count'],
         'user' : [], # Default values
         'subreddit' : '',
         'comments' : '',
