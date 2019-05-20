@@ -1,4 +1,4 @@
-sub_id, topic, title, url
+﻿sub_id, topic, title, url
 8cx0da,ulve,Mener I at der skal være ulve i Dk? Hvorfor/hvorfor ikke?,https://www.reddit.com/r/Denmark/comments/8cx0da/mener_i_at_der_skal_v%C3%A6re_ulve_i_dk_hvorforhvorfor/
 6nz7dy,ulve,EU-svar: Danmark må ikke skyde ulve,https://www.reddit.com/r/Denmark/comments/6nz7dy/eusvar_danmark_m%C3%A5_ikke_skyde_ulve/
 8agt1s,ulve,Den vedholdende konspirationsteori: Har nogen udsat ulve i Nordjylland?,https://www.reddit.com/r/Denmark/comments/8agt1s/den_vedholdende_konspirationsteori_har_nogen/
@@ -19,9 +19,21 @@ amthm9,klima,Klima:Er bevidstheden om et problem nok?,https://www.reddit.com/r/D
 3a6v3a,klima,Det mener partierne [om 10 spørgsmål vedrørende miljø og klima],https://www.reddit.com/r/Denmark/comments/3a6v3a/det_mener_partierne_om_10_sp%C3%B8rgsm%C3%A5l_vedr%C3%B8rende/
 9zn9a2,klima,Klimarådet: Politikernes klima-kurs er urealistisk og uambitiøs,https://www.reddit.com/r/Denmark/comments/9zn9a2/klimar%C3%A5det_politikernes_klimakurs_er_urealistisk/
 774w0s,klima,Regeringens muslingefarme kan være ny klima-bombe,https://www.reddit.com/r/Denmark/comments/774w0s/regeringens_muslingefarme_kan_v%C3%A6re_ny_klimabombe/
-az1r7b,RiisagerMoentkast,Ministerium vil have udleveret videoer fra gymnasiebesøg,https://www.reddit.com/r/Denmark/comments/az1r7b/ministerium_vil_have_udleveret_videoer_fra/
-aysx7z,RiisagerMoentkast,Rektor på Ørestad Gymnasium: Videoovervågning skal vise, om der blev kastet med mønter,https://www.reddit.com/r/Denmark/comments/aysx7z/rektor_p%C3%A5_%C3%B8restad_gymnasium_videooverv%C3%A5gning_skal/
-aynxpz,RiisagerMoentkast,Minister afbrød gymnasiebesøg: Elever kastede med mønter,https://www.reddit.com/r/Denmark/comments/aynxpz/minister_afbr%C3%B8d_gymnasiebes%C3%B8g_elever_kastede_med/
-aynyyx,RiisagerMoentkast,Riisager afbrød gymnasiebesøg: Elever kastede mønter og råbte ”luder”,https://www.reddit.com/r/Denmark/comments/aynyyx/riisager_afbr%C3%B8d_gymnasiebes%C3%B8g_elever_kastede/
-ayvy5h,RiisagerMoentkast,Debatten raser: Blev der kastet med mønter eller ej?,https://www.reddit.com/r/Denmark/comments/ayvy5h/debatten_raser_blev_der_kastet_med_m%C3%B8nter_eller_ej/
+az1r7b,RiisagerMøntkast,Ministerium vil have udleveret videoer fra gymnasiebesøg,https://www.reddit.com/r/Denmark/comments/az1r7b/ministerium_vil_have_udleveret_videoer_fra/
+aysx7z,RiisagerMøntkast,Rektor på Ørestad Gymnasium: Videoovervågning skal vise, om der blev kastet med mønter,https://www.reddit.com/r/Denmark/comments/aysx7z/rektor_p%C3%A5_%C3%B8restad_gymnasium_videooverv%C3%A5gning_skal/
+aynxpz,RiisagerMøntkast,Minister afbrød gymnasiebesøg: Elever kastede med mønter,https://www.reddit.com/r/Denmark/comments/aynxpz/minister_afbr%C3%B8d_gymnasiebes%C3%B8g_elever_kastede_med/
+aynyyx,RiisagerMøntkast,Riisager afbrød gymnasiebesøg: Elever kastede mønter og råbte ”luder”,https://www.reddit.com/r/Denmark/comments/aynyyx/riisager_afbr%C3%B8d_gymnasiebes%C3%B8g_elever_kastede/
+ayvy5h,RiisagerMøntkast,Debatten raser: Blev der kastet med mønter eller ej?,https://www.reddit.com/r/Denmark/comments/ayvy5h/debatten_raser_blev_der_kastet_med_m%C3%B8nter_eller_ej/
+b7ohqt,TogStrejke,Anonymt brev om strejke,https://www.reddit.com/r/Denmark/comments/b7ohqt/de_ansatte_i_dsb_melder_om_arbejdsnedl%C3%A6ggelse_1/
+b72gok,TogStrejke,Togførerer truer om at strejke - dsb kalder det en misforståelse,https://www.reddit.com/r/Denmark/comments/b72gok/dsbansatte_truer_med_at_nedl%C3%A6gge_togdriften_fra/
+5emjyw,trump,Hvorfor må DR skrive sådan noget åbenlyst falsk propaganda?,https://www.reddit.com/r/Denmark/comments/5emjyw/hvorfor_m%C3%A5_dr_skrive_s%C3%A5dan_noget_%C3%A5benlyst_falsk/
+8k6lcb,trump,16-årig blev anholdt for at råbe 'fuck Trump' til lovlig demonstration mod Trump,https://www.reddit.com/r/Denmark/comments/8k6lcb/16%C3%A5rig_blev_anholdt_for_at_r%C3%A5be_fuck_trump_til/
+axnshu,overvaagning,Gymnasieelever boykotter terminsprøve i protest mod overvågning,https://www.reddit.com/r/Denmark/comments/axnshu/gymnasieelever_boykotter_terminspr%C3%B8ve_i_protest/
+ax70y5,5G,5G-teknologien er en miljøtrussel, som bør stoppes,https://www.reddit.com/r/Denmark/comments/ax70y5/5gteknologien_er_en_milj%C3%B8trussel_som_b%C3%B8r_stoppes/
+b0g0qb,5G,Hvad er vi bange for, når vi frygter 5G? - POV,https://www.reddit.com/r/Denmark/comments/b0g0qb/hvad_er_vi_bange_for_n%C3%A5r_vi_frygter_5g_pov/
+b23eat,5G,Forklar det som var jeg fem: Hvad handler alt dette anti 5g polymyk på facebook om?!,https://www.reddit.com/r/Denmark/comments/b23eat/forklar_det_som_var_jeg_fem_hvad_handler_alt/
+b2xrgd,5G,Det er ikke alle som glæder sig til 5G,https://www.reddit.com/r/Denmark/comments/b2xrgd/det_er_ikke_alle_som_gl%C3%A6der_sig_til_5g/
 a0954m,Politik,S: Ny skat på de højeste indtægter skal betale for velfærd, https://www.reddit.com/r/Denmark/comments/a0954m/s_ny_skat_p%C3%A5_de_h%C3%B8jeste_indt%C3%A6gter_skal_betale_for/
+b7aybw,Politik,SF vil hæve skatten for at bruge milliarder på velfærd,https://www.reddit.com/r/Denmark/comments/b7aybw/sf_vil_h%C3%A6ve_skatten_for_at_bruge_milliarder_p%C3%A5/
+bb9iqt,5G,Uffe Elbæk er bekymret over de "sundhedsmæssige konsekvenser" af 5G-netværket,https://www.reddit.com/r/Denmark/comments/bb9iqt/uffe_elb%C3%A6k_er_bekymret_over_de_sundhedsm%C3%A6ssige/
+bp8hqp,Paludan,Detektor: Rasmus Paludan nægter at have brændt koranen af. Jo, det har han. Se det her,https://www.reddit.com/r/Denmark/comments/bp8hqp/detektor_rasmus_paludan_n%C3%A6gter_at_have_br%C3%A6ndt/
